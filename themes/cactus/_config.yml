@@ -18,9 +18,13 @@ nav:
 #  about: /about/
   articles: /archives/
   search: /search/
-  Categories: /categories/
+  category: /categories/
+  tag: /tags/
+
 #  projects: projects_url
 
+local_search:
+    enable: true
 
 # Links to your social media accounts.
 # The keys should correspond to Fontawesome icon names
