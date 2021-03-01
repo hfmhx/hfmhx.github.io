@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang=ch>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta name="description" content="filecoin的gas分析简介filecoin的gas机制是借鉴的EIP1559引入“基本费用”机制 官方的EIP1559介绍 Ethereum Improvement Proposal (EIP) 1559 名词解释 BaseFee：是网络拥塞情况的度量，可以理解为Gas的市场价格，basefee根据上一个tipset中的所有消息的 GasLimit 的总和进行动态调整。当总 GasLimit">
+<meta property="og:type" content="article">
+<meta property="og:title" content="filecoin的gas分析">
+<meta property="og:url" content="http://example.com/2021/02/26/filecoin%E7%9A%84gas%E5%88%86%E6%9E%90/index.html">
+<meta property="og:site_name" content="阿旺小筑">
+<meta property="og:description" content="filecoin的gas分析简介filecoin的gas机制是借鉴的EIP1559引入“基本费用”机制 官方的EIP1559介绍 Ethereum Improvement Proposal (EIP) 1559 名词解释 BaseFee：是网络拥塞情况的度量，可以理解为Gas的市场价格，basefee根据上一个tipset中的所有消息的 GasLimit 的总和进行动态调整。当总 GasLimit">
+<meta property="og:locale">
+<meta property="article:published_time" content="2021-02-26T03:00:45.000Z">
+<meta property="article:modified_time" content="2021-02-26T10:42:28.050Z">
+<meta property="article:author" content="hfmhx">
+<meta property="article:tag" content="区块链，Filecoin">
+<meta name="twitter:card" content="summary">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>filecoin的gas分析</title>
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+      
+<link rel="stylesheet" href="/css/rtl.css">
+
+    
+    <!-- rss -->
+    
+    
+<meta name="generator" content="Hexo 5.3.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fas fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+         
+          <li><a href="/">首页</a></li>
+         
+          <li><a href="/archives/">归档</a></li>
+         
+          <li><a href="/search/">搜索</a></li>
+         
+          <li><a href="/categories/">分类</a></li>
+         
+          <li><a href="/tags/">标签</a></li>
+        
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" href="/2021/02/24/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E5%AD%A6%E4%B9%A0/"><i class="fas fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" href="#"><i class="fas fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2021/02/26/filecoin%E7%9A%84gas%E5%88%86%E6%9E%90/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2021/02/26/filecoin%E7%9A%84gas%E5%88%86%E6%9E%90/&text=filecoin的gas分析"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2021/02/26/filecoin%E7%9A%84gas%E5%88%86%E6%9E%90/&title=filecoin的gas分析"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2021/02/26/filecoin%E7%9A%84gas%E5%88%86%E6%9E%90/&is_video=false&description=filecoin的gas分析"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=filecoin的gas分析&body=Check out this article: http://example.com/2021/02/26/filecoin%E7%9A%84gas%E5%88%86%E6%9E%90/"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2021/02/26/filecoin%E7%9A%84gas%E5%88%86%E6%9E%90/&title=filecoin的gas分析"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2021/02/26/filecoin%E7%9A%84gas%E5%88%86%E6%9E%90/&title=filecoin的gas分析"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2021/02/26/filecoin%E7%9A%84gas%E5%88%86%E6%9E%90/&title=filecoin的gas分析"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2021/02/26/filecoin%E7%9A%84gas%E5%88%86%E6%9E%90/&title=filecoin的gas分析"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2021/02/26/filecoin%E7%9A%84gas%E5%88%86%E6%9E%90/&name=filecoin的gas分析&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2021/02/26/filecoin%E7%9A%84gas%E5%88%86%E6%9E%90/&t=filecoin的gas分析"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#filecoin%E7%9A%84gas%E5%88%86%E6%9E%90"><span class="toc-number">1.</span> <span class="toc-text">filecoin的gas分析</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AE%80%E4%BB%8B"><span class="toc-number">1.1.</span> <span class="toc-text">简介</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%90%8D%E8%AF%8D%E8%A7%A3%E9%87%8A"><span class="toc-number">1.2.</span> <span class="toc-text">名词解释</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Gas%E6%B6%88%E8%80%97%E8%AF%B4%E6%98%8E"><span class="toc-number">1.3.</span> <span class="toc-text">Gas消耗说明</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%A4%E7%89%8C%E9%87%91%E9%A2%9D"><span class="toc-number">1.3.1.</span> <span class="toc-text">令牌金额</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9F%BA%E7%A1%80%E7%87%83%E7%83%A7%E8%B4%B9"><span class="toc-number">1.3.2.</span> <span class="toc-text">基础燃烧费</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9F%BF%E5%B7%A5%E6%89%8B%E7%BB%AD%E8%B4%B9"><span class="toc-number">1.3.3.</span> <span class="toc-text">矿工手续费</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%B6%85%E9%A2%9D%E7%87%83%E7%83%A7"><span class="toc-number">1.3.4.</span> <span class="toc-text">超额燃烧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9F%BF%E5%B7%A5%E6%83%A9%E7%BD%9A"><span class="toc-number">1.3.5.</span> <span class="toc-text">矿工惩罚</span></a></li></ol></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4">
+        
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle" itemprop="name headline">
+        filecoin的gas分析
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span itemprop="name">hfmhx</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2021-02-26T03:00:45.000Z" itemprop="datePublished">2021-02-26</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fas fa-archive"></i>
+        <a class="category-link" href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE/">区块链</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fas fa-tag"></i>
+        <a class="tag-link-link" href="/tags/%E5%8C%BA%E5%9D%97%E9%93%BE%EF%BC%8CFilecoin/" rel="tag">区块链，Filecoin</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content" itemprop="articleBody">
+    <h1 id="filecoin的gas分析"><a href="#filecoin的gas分析" class="headerlink" title="filecoin的gas分析"></a>filecoin的gas分析</h1><h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>filecoin的gas机制是借鉴的EIP1559引入“基本费用”机制</p>
+<p><a target="_blank" rel="noopener" href="https://filecoin.io/zh-cn/blog/posts/filecoin-eip-1559/">官方的EIP1559介绍</a></p>
+<p><a target="_blank" rel="noopener" href="https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1559.md">Ethereum Improvement Proposal (EIP) 1559</a></p>
+<h2 id="名词解释"><a href="#名词解释" class="headerlink" title="名词解释"></a>名词解释</h2><ul>
+<li><p>BaseFee：是网络拥塞情况的度量，可以理解为Gas的市场价格，basefee根据上一个tipset中的所有消息的 GasLimit 的总和进行动态调整。当总 GasLimit 超出某个块的 GasLimit 目标（信号网络拥塞）时，它将增加，而当低于此值时，它将减少，区块链生成的基本信息，以 attoFIL / GasUnit 为单位。</p>
+</li>
+<li><p>GasLimit：消息发送者可以消耗数量的上限，估计和指定的消息执行量的限制，区块中包含的所有消息的GasLimit之和不得超过BlockGasLimit，由消息发送方在消息总指定，单位是GasUnit</p>
+</li>
+<li><p>GasFeeCap：发送者愿意为每一个 GasUnit 支付的最大令牌数额。消息发送者在发送消息时必须有最小的 GasFeeCap 余额乘以 GasLimit，即使不是所有的余额都会被消耗，由消息发送方在消息中指定，单位是 attoFIL/GasUnit</p>
+</li>
+<li><p>GasPremium：用于指示当前消息发送方支付给打包方的小费的gas价格，他代表了一种优先权，消息发送方在消息中指定，单位是autoFIL/GasUnit</p>
+</li>
+<li><p>GasUsed：消息的执行实际消耗的Gas量。当前协议不知道消息在执行之前将确切消耗多少Gas，消息被执行后得出，单位是：GasUnit</p>
+</li>
+</ul>
+<h2 id="Gas消耗说明"><a href="#Gas消耗说明" class="headerlink" title="Gas消耗说明"></a>Gas消耗说明</h2><p>消息上链对资源的消耗体现为Gas的最终消耗，GasUsed乘以BaseFee将被燃烧。从GasFeeCap减去BaseFee将产生GasPremium。GasPremium乘以GasLimit将作为优先费用进入生产矿工的区块。GasLßimit和GasUsage之间的部分差异将作为高估损失而被消耗掉。其余的将返回给消息发送方。</p>
+<h3 id="令牌金额"><a href="#令牌金额" class="headerlink" title="令牌金额"></a>令牌金额</h3><p>这是指发送方能发送当前消息所需要的账户余额的最小值，当发送方给出GasFeeCap后其余额需要大于等于GasFeeCap乘以GasLimit的，可以称其为发送这条消的令牌金额，也是这条消息的消耗极限<br>$$<br>令牌金额 = GasLimit*GasFeeCap<br>$$</p>
+<h3 id="基础燃烧费"><a href="#基础燃烧费" class="headerlink" title="基础燃烧费"></a>基础燃烧费</h3><p>因为消息上链要消耗链上的计算、存储等资源，filecoin要求每条消息支付基础的燃烧费用，计算方式如下：<br>$$<br>基础燃烧费=BaseFee<em>GasUsed<br>$$<br>其中发送者需要支付的部分计算如下：<br>$$<br>发送方支付的基础燃烧费= \begin{cases} BaseFee</em>GasUsed, &amp; \text {($BaseFee$ &lt; $GasFeeCap$)} \ GasFeeCap*GasUsed, &amp; \text{($BaseFee$ &gt; $GasFeeCap$，发送方基础燃烧飞支付不足部分由矿工承担 )} \end{cases}<br>$$</p>
+<p>矿工如果打包GasFeeCap设置不够燃烧的消息时需要支付，不足燃烧的部分基础费，当前链上还对这个数值由加倍惩罚，目前实际支付为3倍<br>$$<br>矿工支付的基础燃烧费=(BaseFee-GasFeeCap)*GasUsed<br>$$</p>
+<h3 id="矿工手续费"><a href="#矿工手续费" class="headerlink" title="矿工手续费"></a>矿工手续费</h3><p>每一条消息发送方都可以通过设置GasPermium来支付手续费给矿工，以提高消息打包的优先级，矿工手续费计算方式<br>$$<br>矿工手续费= \begin{cases} GasPermium*GasLimit, &amp; \text {($BaseFee$ + $GasPermium$ &lt; $GasFeeCap$)} \ (GasFeeCap-BaseFee)*GasLimit, &amp; \text{($BaseFee$ + $GasPermium$ &gt; $GasFeeCap$)} \end{cases}<br>$$</p>
+<h3 id="超额燃烧"><a href="#超额燃烧" class="headerlink" title="超额燃烧"></a>超额燃烧</h3><p>超额燃烧是指发送方预估的GasLimit过高的超出GasUsed的部分要被燃烧掉，计算方式如下<br>$$<br>GasOverestimation=\begin{cases} GasLimit, &amp; \text {($GasUsed为0$)} \ 0, &amp; \text{($GasLimit$ &lt; 1.1*$GasUsed$)} \ (\frac{GasLimit}{GasUsed}-1.1)*(GasLimit-GasUsed) \quad, &amp; \text{($GasLimit$ &gt;= 1.1*$GasUsed$)} \end{cases}<br>$$</p>
+<h3 id="矿工惩罚"><a href="#矿工惩罚" class="headerlink" title="矿工惩罚"></a>矿工惩罚</h3><p>当矿工打包的消息BaseFee大于GasFeeCap时，矿工会收到惩罚，计算方式如下<br>$$<br>MinerPenalty=3*[(BaseFee-GasFeeCap)*GasUsed+GasOverestimation]<br>$$</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+         
+          <li><a href="/">首页</a></li>
+         
+          <li><a href="/archives/">归档</a></li>
+         
+          <li><a href="/search/">搜索</a></li>
+         
+          <li><a href="/categories/">分类</a></li>
+         
+          <li><a href="/tags/">标签</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#filecoin%E7%9A%84gas%E5%88%86%E6%9E%90"><span class="toc-number">1.</span> <span class="toc-text">filecoin的gas分析</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AE%80%E4%BB%8B"><span class="toc-number">1.1.</span> <span class="toc-text">简介</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%90%8D%E8%AF%8D%E8%A7%A3%E9%87%8A"><span class="toc-number">1.2.</span> <span class="toc-text">名词解释</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Gas%E6%B6%88%E8%80%97%E8%AF%B4%E6%98%8E"><span class="toc-number">1.3.</span> <span class="toc-text">Gas消耗说明</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%A4%E7%89%8C%E9%87%91%E9%A2%9D"><span class="toc-number">1.3.1.</span> <span class="toc-text">令牌金额</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9F%BA%E7%A1%80%E7%87%83%E7%83%A7%E8%B4%B9"><span class="toc-number">1.3.2.</span> <span class="toc-text">基础燃烧费</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9F%BF%E5%B7%A5%E6%89%8B%E7%BB%AD%E8%B4%B9"><span class="toc-number">1.3.3.</span> <span class="toc-text">矿工手续费</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%B6%85%E9%A2%9D%E7%87%83%E7%83%A7"><span class="toc-number">1.3.4.</span> <span class="toc-text">超额燃烧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9F%BF%E5%B7%A5%E6%83%A9%E7%BD%9A"><span class="toc-number">1.3.5.</span> <span class="toc-text">矿工惩罚</span></a></li></ol></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2021/02/26/filecoin%E7%9A%84gas%E5%88%86%E6%9E%90/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2021/02/26/filecoin%E7%9A%84gas%E5%88%86%E6%9E%90/&text=filecoin的gas分析"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2021/02/26/filecoin%E7%9A%84gas%E5%88%86%E6%9E%90/&title=filecoin的gas分析"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2021/02/26/filecoin%E7%9A%84gas%E5%88%86%E6%9E%90/&is_video=false&description=filecoin的gas分析"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=filecoin的gas分析&body=Check out this article: http://example.com/2021/02/26/filecoin%E7%9A%84gas%E5%88%86%E6%9E%90/"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2021/02/26/filecoin%E7%9A%84gas%E5%88%86%E6%9E%90/&title=filecoin的gas分析"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2021/02/26/filecoin%E7%9A%84gas%E5%88%86%E6%9E%90/&title=filecoin的gas分析"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2021/02/26/filecoin%E7%9A%84gas%E5%88%86%E6%9E%90/&title=filecoin的gas分析"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2021/02/26/filecoin%E7%9A%84gas%E5%88%86%E6%9E%90/&title=filecoin的gas分析"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2021/02/26/filecoin%E7%9A%84gas%E5%88%86%E6%9E%90/&name=filecoin的gas分析&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2021/02/26/filecoin%E7%9A%84gas%E5%88%86%E6%9E%90/&t=filecoin的gas分析"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2021
+    hfmhx
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+         
+          <li><a href="/">首页</a></li>
+         
+          <li><a href="/archives/">归档</a></li>
+         
+          <li><a href="/search/">搜索</a></li>
+         
+          <li><a href="/categories/">分类</a></li>
+         
+          <li><a href="/tags/">标签</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+
+<link rel="stylesheet" href="/lib/justified-gallery/css/justifiedGallery.min.css">
+
+
+    <!-- jquery -->
+
+<script src="/lib/jquery/jquery.min.js"></script>
+
+
+<script src="/lib/justified-gallery/js/jquery.justifiedGallery.min.js"></script>
+
+<!-- clipboard -->
+
+  
+<script src="/lib/clipboard/clipboard.min.js"></script>
+
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板!\">";
+    btn += '<i class="far fa-clone"></i>';
+    btn += '</span>'; 
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功!");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Google Analytics -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Umami Analytics -->
+
+<!-- Disqus Comments -->
+
+
+</body>
+</html>

@@ -245,4 +245,49 @@
         <tag>TCP</tag>
       </tags>
   </entry>
+  <entry>
+    <title>filecoin的gas分析</title>
+    <url>/2021/02/26/filecoin%E7%9A%84gas%E5%88%86%E6%9E%90/</url>
+    <content><![CDATA[<h1 id="filecoin的gas分析"><a href="#filecoin的gas分析" class="headerlink" title="filecoin的gas分析"></a>filecoin的gas分析</h1><h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>filecoin的gas机制是借鉴的EIP1559引入“基本费用”机制</p>
+<p><a href="https://filecoin.io/zh-cn/blog/posts/filecoin-eip-1559/">官方的EIP1559介绍</a></p>
+<p><a href="https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1559.md">Ethereum Improvement Proposal (EIP) 1559</a></p>
+<h2 id="名词解释"><a href="#名词解释" class="headerlink" title="名词解释"></a>名词解释</h2><ul>
+<li><p>BaseFee：是网络拥塞情况的度量，可以理解为Gas的市场价格，basefee根据上一个tipset中的所有消息的 GasLimit 的总和进行动态调整。当总 GasLimit 超出某个块的 GasLimit 目标（信号网络拥塞）时，它将增加，而当低于此值时，它将减少，区块链生成的基本信息，以 attoFIL / GasUnit 为单位。</p>
+</li>
+<li><p>GasLimit：消息发送者可以消耗数量的上限，估计和指定的消息执行量的限制，区块中包含的所有消息的GasLimit之和不得超过BlockGasLimit，由消息发送方在消息总指定，单位是GasUnit</p>
+</li>
+<li><p>GasFeeCap：发送者愿意为每一个 GasUnit 支付的最大令牌数额。消息发送者在发送消息时必须有最小的 GasFeeCap 余额乘以 GasLimit，即使不是所有的余额都会被消耗，由消息发送方在消息中指定，单位是 attoFIL/GasUnit</p>
+</li>
+<li><p>GasPremium：用于指示当前消息发送方支付给打包方的小费的gas价格，他代表了一种优先权，消息发送方在消息中指定，单位是autoFIL/GasUnit</p>
+</li>
+<li><p>GasUsed：消息的执行实际消耗的Gas量。当前协议不知道消息在执行之前将确切消耗多少Gas，消息被执行后得出，单位是：GasUnit</p>
+</li>
+</ul>
+<h2 id="Gas消耗说明"><a href="#Gas消耗说明" class="headerlink" title="Gas消耗说明"></a>Gas消耗说明</h2><p>消息上链对资源的消耗体现为Gas的最终消耗，GasUsed乘以BaseFee将被燃烧。从GasFeeCap减去BaseFee将产生GasPremium。GasPremium乘以GasLimit将作为优先费用进入生产矿工的区块。GasLßimit和GasUsage之间的部分差异将作为高估损失而被消耗掉。其余的将返回给消息发送方。</p>
+<h3 id="令牌金额"><a href="#令牌金额" class="headerlink" title="令牌金额"></a>令牌金额</h3><p>这是指发送方能发送当前消息所需要的账户余额的最小值，当发送方给出GasFeeCap后其余额需要大于等于GasFeeCap乘以GasLimit的，可以称其为发送这条消的令牌金额，也是这条消息的消耗极限<br>$$<br>令牌金额 = GasLimit*GasFeeCap<br>$$</p>
+<h3 id="基础燃烧费"><a href="#基础燃烧费" class="headerlink" title="基础燃烧费"></a>基础燃烧费</h3><p>因为消息上链要消耗链上的计算、存储等资源，filecoin要求每条消息支付基础的燃烧费用，计算方式如下：<br>$$<br>基础燃烧费=BaseFee<em>GasUsed<br>$$<br>其中发送者需要支付的部分计算如下：<br>$$<br>发送方支付的基础燃烧费= \begin{cases} BaseFee</em>GasUsed, &amp; \text {($BaseFee$ &lt; $GasFeeCap$)} \ GasFeeCap*GasUsed, &amp; \text{($BaseFee$ &gt; $GasFeeCap$，发送方基础燃烧飞支付不足部分由矿工承担 )} \end{cases}<br>$$</p>
+<p>矿工如果打包GasFeeCap设置不够燃烧的消息时需要支付，不足燃烧的部分基础费，当前链上还对这个数值由加倍惩罚，目前实际支付为3倍<br>$$<br>矿工支付的基础燃烧费=(BaseFee-GasFeeCap)*GasUsed<br>$$</p>
+<h3 id="矿工手续费"><a href="#矿工手续费" class="headerlink" title="矿工手续费"></a>矿工手续费</h3><p>每一条消息发送方都可以通过设置GasPermium来支付手续费给矿工，以提高消息打包的优先级，矿工手续费计算方式<br>$$<br>矿工手续费= \begin{cases} GasPermium*GasLimit, &amp; \text {($BaseFee$ + $GasPermium$ &lt; $GasFeeCap$)} \ (GasFeeCap-BaseFee)*GasLimit, &amp; \text{($BaseFee$ + $GasPermium$ &gt; $GasFeeCap$)} \end{cases}<br>$$</p>
+<h3 id="超额燃烧"><a href="#超额燃烧" class="headerlink" title="超额燃烧"></a>超额燃烧</h3><p>超额燃烧是指发送方预估的GasLimit过高的超出GasUsed的部分要被燃烧掉，计算方式如下<br>$$<br>GasOverestimation=\begin{cases} GasLimit, &amp; \text {($GasUsed为0$)} \ 0, &amp; \text{($GasLimit$ &lt; 1.1*$GasUsed$)} \ (\frac{GasLimit}{GasUsed}-1.1)*(GasLimit-GasUsed) \quad, &amp; \text{($GasLimit$ &gt;= 1.1*$GasUsed$)} \end{cases}<br>$$</p>
+<h3 id="矿工惩罚"><a href="#矿工惩罚" class="headerlink" title="矿工惩罚"></a>矿工惩罚</h3><p>当矿工打包的消息BaseFee大于GasFeeCap时，矿工会收到惩罚，计算方式如下<br>$$<br>MinerPenalty=3*[(BaseFee-GasFeeCap)*GasUsed+GasOverestimation]<br>$$</p>
+]]></content>
+      <categories>
+        <category>区块链</category>
+      </categories>
+      <tags>
+        <tag>区块链，Filecoin</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>设计模式学习</title>
+    <url>/2021/02/24/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E5%AD%A6%E4%B9%A0/</url>
+    <content><![CDATA[<h1 id="设计模式"><a href="#设计模式" class="headerlink" title="设计模式"></a>设计模式</h1><h2 id="策略模式"><a href="#策略模式" class="headerlink" title="策略模式"></a>策略模式</h2><p>策略模式定义了算法家族，分别封装起来，让他们之间可以相互替换，策略模式让算法的变化不会影响到使用算法的客户。</p>
+]]></content>
+      <categories>
+        <category>设计模式</category>
+      </categories>
+      <tags>
+        <tag>设计模式</tag>
+      </tags>
+  </entry>
 </search>
